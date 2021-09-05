@@ -104,7 +104,6 @@ class ShifrView(gui.Ui_MainWindow, QtWidgets.QMainWindow):
             msgBox = QtWidgets.QMessageBox()
             msgBox.setText('Отсутствует тестовый файл!\nПожалйста, создайте шифрованную папку заново.')
             msgBox.exec_()
-            print('нет names')
             app.exit()
 
     def TreeDoubleClickEvent(self, index):
@@ -261,7 +260,6 @@ class EncrThread(QThread):
         # удалить папки
         sleep(0.5)
         path_list = [os.path.join(self.path, i) for i in os.listdir(self.path)]
-        print(path_list)
         for i in path_list:
             if os.path.isdir(i):
                 rmtree(i, ignore_errors=True)
@@ -339,8 +337,6 @@ class DialogWindow(dialog.Ui_Dialog_open, QtWidgets.QMainWindow):
         self.btn_ok.clicked.connect(self.ok)
         self.btn_cancel.clicked.connect(self.cancel)
         self.btn_obzor.clicked.connect(self.obzor)
-        # self.Edit_path.setText('C:\\Users\\User\\PycharmProjects\\ShifrView\\Test')  ###############################################
-        # self.Edit_passwd.setText('password')  ###############################################
 
     def ok(self):
         self.path = self.Edit_path.text()
