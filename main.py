@@ -1,24 +1,12 @@
-from PySide2 import QtWidgets, QtGui, QtCore
-from PySide2.QtCore import Signal, QThread, Slot, SIGNAL
-from MyCipher import MyCipher
-from shutil import copyfile, copytree, rmtree
-from time import sleep
 import os
-import gui
-import entry
-import dialog
-import progress
+from shutil import copyfile, copytree, rmtree
 
+from PySide2 import QtWidgets, QtGui, QtCore
+from PySide2.QtCore import Slot
 
-def g_list_allfiles(path):
-    all_files = []
-    dir_list = [path+'\\'+i for i in os.listdir(path)]
-    for f in dir_list:
-        if os.path.isdir(f):
-            all_files.extend(g_list_allfiles(f))
-        else:
-            all_files.append(f)
-    return all_files
+from Modules.CipherThreads import EncrThread, DecrThread, g_list_allfiles
+from MyCipher import MyCipher
+from UI import dialog, entry, gui, progress
 
 
 class ShifrView(gui.Ui_MainWindow, QtWidgets.QMainWindow):
@@ -56,18 +44,18 @@ class ShifrView(gui.Ui_MainWindow, QtWidgets.QMainWindow):
             elif not os.path.isdir(cur_path):
                 cur_path = os.path.dirname(cur_path)
             if os.path.isdir(file_name):
-                copytree(file_name, cur_path+'\\'+os.path.basename(file_name))
+                copytree(file_name, cur_path + '\\' + os.path.basename(file_name))
             else:
                 copyfile(file_name, cur_path + '\\' + os.path.basename(file_name))
 
     def create_encdir(self):
         try:
-            os.mkdir(self.path+'\\_encdir_')
+            os.mkdir(self.path + '\\_encdir_')
         except Exception:
-            if os.path.exists(self.path+'\\_encdir_\\#names.txt.crypt'):
-                msgBox = QtWidgets.QMessageBox()
-                msgBox.setText('Папка уже является зашифрованной, пытаюсь расшифровать...')
-                msgBox.exec_()
+            if os.path.exists(self.path + '\\_encdir_\\#names.txt.crypt'):
+                msg_box = QtWidgets.QMessageBox()
+                msg_box.setText('Папка уже является зашифрованной, пытаюсь расшифровать...')
+                msg_box.exec_()
                 self.test_decrypt()
                 return
         global fd
@@ -93,17 +81,17 @@ class ShifrView(gui.Ui_MainWindow, QtWidgets.QMainWindow):
                 pb.setFocus()
                 pb.start_dec_thr()
             else:
-                msgBox = QtWidgets.QMessageBox()
-                msgBox.setText('Ошибка расшифрования, неверный ключ!')
+                msg_box = QtWidgets.QMessageBox()
+                msg_box.setText('Ошибка расшифрования, неверный ключ!')
                 os.remove(self.path + '\\_encdir_\\#names.txt')
                 os.remove(copy_test)
                 rmtree(self.path + '\\_encdir_')
-                msgBox.exec_()  # сделать возврат на главный экран
+                msg_box.exec_()
                 app.exit()
         else:
-            msgBox = QtWidgets.QMessageBox()
-            msgBox.setText('Отсутствует тестовый файл!\nПожалйста, создайте шифрованную папку заново.')
-            msgBox.exec_()
+            msg_box = QtWidgets.QMessageBox()
+            msg_box.setText('Отсутствует тестовый файл!\nПожалйста, создайте шифрованную папку заново.')
+            msg_box.exec_()
             app.exit()
 
     def TreeDoubleClickEvent(self, index):
@@ -144,7 +132,7 @@ class ShifrView(gui.Ui_MainWindow, QtWidgets.QMainWindow):
 
     def change_key(self):
         cur_pass, ok1 = QtWidgets.QInputDialog.getText(self, "Смена ключа",
-                                                  "Введите действующий ключ:", QtWidgets.QLineEdit.Password)
+                                                       "Введите действующий ключ:", QtWidgets.QLineEdit.Password)
         if ok1 and cur_pass == self.password:
             new_pass, ok2 = QtWidgets.QInputDialog.getText(self, "Смена ключа",
                                                            "Введите новый ключ:", QtWidgets.QLineEdit.Password)
@@ -163,7 +151,7 @@ class ShifrView(gui.Ui_MainWindow, QtWidgets.QMainWindow):
             QtWidgets.QMessageBox.information(self, "Проверка хэша", 'Данная функция будет доступна '
                                                                      'после перезапуска программы...')
             return
-        sw.statusBar.showMessage('Проверяем хэши файлов...',2000)
+        sw.statusBar.showMessage('Проверяем хэши файлов...', 2000)
         cipher = MyCipher(self.password)
         files = g_list_allfiles(self.path)
         files_h = [cipher.hash_file(f) for f in files]
@@ -179,130 +167,42 @@ class ShifrView(gui.Ui_MainWindow, QtWidgets.QMainWindow):
         for i in current:
             if f_dict.get(i[0]) != i[1] and not i[0].endswith('#hashes.txt'):
                 corrupted.append(i)
-        msgBox = QtWidgets.QMessageBox()
+        msg_box = QtWidgets.QMessageBox()
         sw.statusBar.showMessage('Проверка завершена', 2000)
         if not corrupted:
-            msgBox.setText('Файлы в Ваше отсутствие не изменялись.\nХэши совпадают.')
+            msg_box.setText('Файлы в Ваше отсутствие не изменялись.\nХэши совпадают.')
         else:
             cor_str = ''
             for i in corrupted:
                 cor_str += f'{i[0]}\n'
-            msgBox.setText('Обнаружены изменения в файлах:\n'+cor_str)
-        msgBox.exec_()
+            msg_box.setText('Обнаружены изменения в файлах:\n' + cor_str)
+        msg_box.exec_()
 
-    def closeEvent(self, event:QtGui.QCloseEvent):
+    def closeEvent(self, event: QtGui.QCloseEvent):
         event.ignore()
         if not fd:
             QtWidgets.QMessageBox.warning(self, "Закрытие", 'Еще не закончилось стартовое хэширование, подождите...')
             return
-        # Проверка на открытые файлы
+        # Check opened files
         files = g_list_allfiles(self.path)
-        opened=[]
+        opened = []
         for f in files:
             try:
-                fo = open(f,'a+')
+                fo = open(f, 'a+')
                 fo.close()
             except IOError:
                 opened.append(f)
         if opened:
             s = 'Закройте следующие файлы перед завершением работы программы:\n'
             for o in opened:
-                s += o+'\n'
+                s += o + '\n'
             QtWidgets.QMessageBox.warning(self, "Закрытие", s)
             event.ignore()
         else:
-            # Запуск шифрования
+            # Start cipher
             global pb
             pb = Progress(self.password, self.path)
             pb.start_enc_thr()
-
-
-class MySignals(QtCore.QObject):
-    update_progress = Signal(int)
-    finish = Signal(str)
-    pr_size = Signal(int)
-
-
-class EncrThread(QThread):
-    def __init__(self, parent, passw, path):
-        QThread.__init__(self, parent)
-        self.signals = MySignals()
-        self.signals.update_progress.connect(parent.update_pb)
-        self.signals.finish.connect(parent.finish)
-        self.passw = passw
-        self.path = path
-
-    def run(self):
-        # Хэширую
-        self.signals.finish.emit('start encryption')
-        cipher = MyCipher(self.passw)
-        files = g_list_allfiles(self.path)
-        self.signals.pr_size.emit(len(files))
-        files_h = [cipher.hash_file(f) for f in files]
-        with open(self.path + '\\_encdir_\\#hashes.txt', 'w') as h:
-            for i in zip(files, files_h):
-                if not i[0].endswith('#hashes.txt'):
-                    h.write(i[0] + '----' + i[1] + '\n')
-        files = g_list_allfiles(self.path)
-        self.signals.finish.emit('finished hash')
-        # Шифрую
-        with open(self.path + '\\_encdir_\\#names.txt', 'w') as n:
-            for i, real_name in enumerate(files):
-                if os.path.basename(real_name) == '#names.txt':
-                    continue
-                encr_name = cipher.encrypt_str(real_name)
-                hidden_name = os.path.join(self.path, f'File_{i}')    # без папок
-                n.write(hidden_name+'-----'+encr_name.decode()+'\n')
-                self.signals.update_progress.emit(1)
-                cipher.encrypt_file_aes(real_name, hidden_name)
-            n.write(self.path + '\\File' + '-----' + 'sysfile' + '\n')
-        cipher.encrypt_file_aes(self.path + '\\_encdir_\\#names.txt', self.path + '\\File')      # новое
-        # удалить папки
-        sleep(0.5)
-        path_list = [os.path.join(self.path, i) for i in os.listdir(self.path)]
-        for i in path_list:
-            if os.path.isdir(i):
-                rmtree(i, ignore_errors=True)
-        self.signals.finish.emit('finished encryption')
-
-
-class DecrThread(QThread):
-    def __init__(self, parent, passw, path):
-        QThread.__init__(self, parent)
-        self.signals = MySignals()
-        self.signals.update_progress.connect(parent.update_pb)
-        self.signals.finish.connect(parent.finish)
-        self.passw = passw
-        self.path = path
-
-    def run(self):
-        # Дешифрую
-        cipher = MyCipher(self.passw)
-        files = g_list_allfiles(self.path)
-        self.signals.pr_size.emit(len(files))
-        with open(self.path + '\\_encdir_\\#names.txt', 'r') as n:
-            while True:
-                text = n.readline()
-                if len(text) < 10:
-                    break
-                hidden_name, encr_name = text.strip().split(sep='-----')
-                if encr_name == 'sysfile':
-                    continue
-                real_name = cipher.decrypt_str(encr_name.encode())
-                self.signals.update_progress.emit(1)
-                # создать папки если их нет
-                if not os.path.exists(os.path.dirname(real_name)):
-                    os.makedirs(os.path.dirname(real_name))
-                cipher.decrypt_file_aes(hidden_name, real_name)
-        self.signals.finish.emit('finished decryption')
-        # Хэширую
-        files = g_list_allfiles(self.path)
-        files_h = [cipher.hash_file(f) for f in files]
-        with open(self.path + '\\_encdir_\\#hashes.txt', 'w') as h:
-            for i in zip(files, files_h):
-                if not i[0].endswith('#hashes.txt'):
-                    h.write(i[0] + '----' + i[1] + '\n')
-        self.signals.finish.emit('finished decrhash')
 
 
 class EntryWindow(entry.Ui_EntryWindow, QtWidgets.QMainWindow):
@@ -342,7 +242,7 @@ class DialogWindow(dialog.Ui_Dialog_open, QtWidgets.QMainWindow):
         self.path = self.Edit_path.text()
         self.password = self.Edit_passwd.text()
         global sw
-        sw =ShifrView(self.path, self.password, self.new_or_exist)
+        sw = ShifrView(self.path, self.password, self.new_or_exist)
         sw.setFixedHeight(465)
         sw.setFixedWidth(452)
         enw.destroy()

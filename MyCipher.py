@@ -1,9 +1,10 @@
-from cryptography import fernet
 import base64
-import os
 import hashlib
-from cryptography.hazmat.primitives.ciphers import algorithms, Cipher, modes
+import os
+
+from cryptography import fernet
 from cryptography.hazmat.primitives import padding
+from cryptography.hazmat.primitives.ciphers import algorithms, Cipher, modes
 
 
 class MyCipher:
@@ -18,7 +19,7 @@ class MyCipher:
         return self.cipher.decrypt(crypt_msg)
 
     def encrypt_file_fern(self, path):
-        with open(path+'.crypt', 'wb') as crypt_file, open(path, 'rb') as plain_file:
+        with open(path + '.crypt', 'wb') as crypt_file, open(path, 'rb') as plain_file:
             while True:
                 block = plain_file.read(2048)
                 if not block:
@@ -82,12 +83,3 @@ class MyCipher:
         with open(path, 'rb') as f:
             h = hashlib.sha3_256(f.read()).hexdigest()
         return h
-
-
-
-
-# c = MyCipher('password')
-# print(type(str(c.encrypt_str('hello'))))
-# print(c.hash_file('C:\\Users\\Андрей\\PycharmProjects\\ShifrView\\TestFiles\\File #2.pdf'))
-# c.encrypt_file_aes('C:\\Users\\Андрей\\PycharmProjects\\ShifrView\\TestDir\\#test')
-# c.decrypt_file_aes('C:\\Users\\Андрей\\Desktop\\книги\\1. Python книги\\crypt\\test.pdf.crypt')
