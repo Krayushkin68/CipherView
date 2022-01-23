@@ -1,6 +1,10 @@
 # CipherView
 Desktop application for creating a directory with transparent encryption.
+## Why?
+There are many cases when we need to hide files from prying eyes. And sometimes we need to hide not only the content, but also the fact that we are hiding something. The creation of the program was based on the idea of moving from a single storage used in TrueCrypt to a distributed one to hide the fact of hiding.
+## Used technologies
+*Language*: Python
 
-![Files_in_app](https://user-images.githubusercontent.com/71232265/132131980-d97e8b76-9e99-42b6-a4a6-87f3492b8163.JPG)
-![Encr_files](https://user-images.githubusercontent.com/71232265/132131991-a8a9d93f-6d99-4637-8be6-fd7b8fb6e4e8.JPG)
-
+*Libraries*: Cryptography (with a custom made cipher, based on classic AES algorithm), PySide2
+## Example
+![cipher_view](https://user-images.githubusercontent.com/71232265/150680212-7a4b0476-fbb0-49af-bce6-60aa2779eb28.gif)
